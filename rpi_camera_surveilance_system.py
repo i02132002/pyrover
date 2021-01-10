@@ -50,27 +50,57 @@ PAGE="""\
 
 <body>
     <center><img src="stream.mjpg" width="640" height="480"></center>
-    <div>
-        <center>
-            <div>
-                <button type="button" id="up">&uarr;</button>
-            </div>
-            <div>
+    <center>
+        <div id = "container" style="width:600px">
+            <div id ="camera_control" style="width:300px; float:left;" >
+                <center><h3>Camera rotation</h3></center>
                 <center>
-                    <button type="button" id="left" onclick="send('http://192.168.2.17:8000/left')">&larr;</button>
-                    <button type="button" id="center" onclick="send('http://192.168.2.17:8000/center')">&squ;</button>
-                    <button type="button" id="right" onclick="send('http://192.168.2.17:8000/right')">&rarr;</button>
+                    <div>
+                        <button type="button" id="up" onclick="send('http://192.168.2.17:8000/up')">&uarr;</button>
+                    </div>
+                    <div>
+                        <center>
+                            <button type="button" id="left" onclick="send('http://192.168.2.17:8000/left')">&larr;</button>
+                            <button type="button" id="center" onclick="send('http://192.168.2.17:8000/center')">&squ;</button>
+                            <button type="button" id="right" onclick="send('http://192.168.2.17:8000/right')">&rarr;</button>
+                        </center>
+                    </div>
+                    <div>
+                        <button type="button" id="down" onclick="send('http://192.168.2.17:8000/down')">&darr;</button>
+                    </div>
                 </center>
             </div>
-            <div>
-                <button type="button" id="down">&darr;</button>
+            <div id ="motor_control" style="width:300px; float:right;">
+                <center><h3>Motor control</h3></center>
+                <center>
+                    <div>
+                        <button type="button" id="motor_fw" onclick="send('http://192.168.2.17:8000/motor_fw')">&uarr;</button>
+                    </div>
+                    <div>
+                        <center>
+                            <button type="button" id="motor_left" onclick="send('http://192.168.2.17:8000/motor_left')">&larr;</button>
+                            <button type="button" id="motor_stop" onclick="send('http://192.168.2.17:8000/motor_stop')">&squ;</button>
+                            <button type="button" id="motor_right" onclick="send('http://192.168.2.17:8000/motor_right')">&rarr;</button>
+                        </center>
+                    </div>
+                    <div>
+                        <button type="button" id="motor_bk" onclick="send('http://192.168.2.17:8000/motor_bk')">&darr;</button>
+                    </div>
+                </center>
             </div>
-        </center>
-    </div>
+        </div>
+    </center>
 </body>
 
 </html>
 """
+
+class servo:
+    def __init__(self, pin, angle = 90):
+        self.pin = pin
+        self.angle = angle
+        
+
 
 class ServoHandler:
     __instance = None
@@ -88,15 +118,20 @@ class ServoHandler:
         else:
             ServoHandler.__instance = self
         print("servohandler initialized")
-        self.current_angle = 90   
-        self.servo = 27
         self.pwm = pigpio.pi()
-        self.pwm.set_mode(self.servo, pigpio.OUTPUT)
-        self.pwm.set_PWM_frequency( self.servo, 50 )
-        self.pwm.set_servo_pulsewidth( self.servo, self.angle_to_f(self.current_angle) ) ;
-        sleep( 3 )
-        self.pwm.set_PWM_dutycycle(self.servo, 0)
-        self.pwm.set_PWM_frequency(self.servo, 0 )
+        self.s1, self.s2 = servo(17), servo(27) #create tilt and pan servos
+        self.pwm.set_mode(self.s1.pin, pigpio.OUTPUT)
+        self.pwm.set_mode(self.s2.pin, pigpio.OUTPUT)
+        self.set_servo_angle(self.s1, 90)
+        self.set_servo_angle(self.s2, 90)
+    
+    def set_servo_angle(self, s: servo, angle):
+        self.pwm.set_PWM_frequency( s.pin , 50 )
+        self.pwm.set_servo_pulsewidth( s.pin , self.angle_to_f(angle) )
+        sleep( 0.5 )
+        self.pwm.set_PWM_dutycycle( s.pin , 0)
+        self.pwm.set_PWM_frequency( s.pin , 0)
+        s.angle = angle
 
     def close(self):
         self.pwm.stop()
@@ -110,37 +145,53 @@ class ServoHandler:
         return angle/180.*(2500.-750.) + 750.
     
     def left(self):
-        #self.pwm.start(13)
-        self.incrementServoAngle(30)
+        self.incrementServoAngle(self.s2, 30)
         
     def right(self):
-        #self.pwm.start(0)
-        self.incrementServoAngle(-30)
+        self.incrementServoAngle(self.s2, -30)
+    
+    def up(self):
+        self.incrementServoAngle(self.s1, 30)
+
+    def down(self):
+        self.incrementServoAngle(self.s1, -30)
     
     def center(self):
-        self.pwm.set_PWM_frequency( self.servo, 50 )
-        self.current_angle = 90 
-        self.pwm.set_servo_pulsewidth( self.servo, self.angle_to_f(self.current_angle) ) ;
-        sleep(0.5)
-        self.pwm.set_PWM_dutycycle(self.servo, 0)
-        self.pwm.set_PWM_frequency(self.servo, 0 )
-        
-        
-    def incrementServoAngle(self, angle):
-        self.pwm.set_PWM_frequency( self.servo, 50 )
-        self.pwm.set_servo_pulsewidth( self.servo, self.angle_to_f(self.current_angle) ) ;
-        sleep(0.1)
-        end_angle = self.current_angle + angle
-        self.current_angle = end_angle
-        if self.current_angle > 180:
-            self.current_angle = 180
-        if self.current_angle < 0:
-            self.current_angle = 0
-        self.pwm.set_servo_pulsewidth( self.servo, self.angle_to_f(self.current_angle) ) ;
-        sleep(0.5)
-        self.pwm.set_PWM_dutycycle(self.servo, 0)
-        self.pwm.set_PWM_frequency(self.servo, 0 )
-        
+        self.set_servo_angle(self.s1, 90)
+        self.set_servo_angle(self.s2, 90)
+               
+    def incrementServoAngle(self, s: servo, angle):
+        end_angle = s.angle + angle   
+        s.angle = end_angle
+        if s.angle > 180:
+            s.angle = 180
+        if s.angle < 0:
+            s.angle = 0
+        self.set_servo_angle(s, s.angle)
+
+    def motor_fw(self):
+        self.incrementServoAngle(-30)
+        #left_motor_fw
+        #right_motor_fw
+
+    def motor_bk(self):
+        self.incrementServoAngle(-30)
+        #left_motor_bk
+        #right_motor_bk
+
+    def motor_left(self):
+        self.incrementServoAngle(-30)
+        #left_motor_bk
+        #right_motor_fw
+
+    def motor_right(self):
+        self.incrementServoAngle(-30)
+        #left_motor_fw
+        #right_motor_bk
+
+    def motor_stop(self):
+        self.incrementServoAngle(-30)
+
 
 
 
@@ -183,6 +234,27 @@ class StreamingHandler(server.BaseHTTPRequestHandler):
             self.send_response(301)
             self.send_header('Location', '/index.html')
             self.end_headers()
+        elif self.path == '/motor_stop':
+            self._send_webpage()
+            self.s.motor_stop()
+        elif self.path == '/motor_fw':
+            self._send_webpage()
+            self.s.motor_fw()
+        elif self.path == '/motor_right':
+            self._send_webpage()
+            self.s.motor_right()
+        elif self.path == '/motor_left':
+            self._send_webpage()
+            self.s.motor_left()
+        elif self.path == '/motor_bk':
+            self._send_webpage()
+            self.s.motor_bk()
+        elif self.path == '/up':
+            self._send_webpage()
+            self.s.up()
+        elif self.path == '/down':
+            self._send_webpage()
+            self.s.down()
         elif self.path == '/left':
             self._send_webpage()
             self.s.left()
