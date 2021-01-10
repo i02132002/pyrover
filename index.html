@@ -1,0 +1,26 @@
+<html>
+<head>
+<title>Dashboard v0.1</title>
+<script>
+    function send(theUrl)
+    {
+        var xmlHttp = new XMLHttpRequest();
+        xmlHttp.open( "GET", theUrl, false);
+        xmlHttp.send(null);
+        return xmlHttp.responseText;
+    }
+</script>
+
+<style>
+    body {
+        width: 35em;
+        margin: 0 auto;
+        font-family: Tahoma, Verdana, Arial, sans-serif;
+    }
+</style>
+
+</head>
+<body>
+    <button type="button" onclick="send("http://127.0.0.1:34000")">Test</button>
+</body>
+</html>
