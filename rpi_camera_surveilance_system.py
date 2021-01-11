@@ -56,17 +56,17 @@ PAGE="""\
                 <center><h3>Camera rotation</h3></center>
                 <center>
                     <div>
-                        <button type="button" id="up" onclick="send('http://192.168.2.17:8000/up')">&uarr;</button>
+                        <button type="button" id="up" onclick="send('http://127.0.0.1:8000/up')">&uarr;</button>
                     </div>
                     <div>
                         <center>
-                            <button type="button" id="left" onclick="send('http://192.168.2.17:8000/left')">&larr;</button>
-                            <button type="button" id="center" onclick="send('http://192.168.2.17:8000/center')">&squ;</button>
-                            <button type="button" id="right" onclick="send('http://192.168.2.17:8000/right')">&rarr;</button>
+                            <button type="button" id="left" onclick="send('http://127.0.0.1:8000/left')">&larr;</button>
+                            <button type="button" id="center" onclick="send('http://127.0.0.1:8000/center')">&squ;</button>
+                            <button type="button" id="right" onclick="send('http://127.0.0.1:8000/right')">&rarr;</button>
                         </center>
                     </div>
                     <div>
-                        <button type="button" id="down" onclick="send('http://192.168.2.17:8000/down')">&darr;</button>
+                        <button type="button" id="down" onclick="send('http://127.0.0.1:8000/down')">&darr;</button>
                     </div>
                 </center>
             </div>
@@ -74,17 +74,17 @@ PAGE="""\
                 <center><h3>Motor control</h3></center>
                 <center>
                     <div>
-                        <button type="button" id="motor_fw" onclick="send('http://192.168.2.17:8000/motor_fw')">&uarr;</button>
+                        <button type="button" id="motor_fw" onclick="send('http://127.0.0.1:8000/motor_fw')">&uarr;</button>
                     </div>
                     <div>
                         <center>
-                            <button type="button" id="motor_left" onclick="send('http://192.168.2.17:8000/motor_left')">&larr;</button>
-                            <button type="button" id="motor_stop" onclick="send('http://192.168.2.17:8000/motor_stop')">&squ;</button>
-                            <button type="button" id="motor_right" onclick="send('http://192.168.2.17:8000/motor_right')">&rarr;</button>
+                            <button type="button" id="motor_left" onclick="send('http://127.0.0.1:8000/motor_left')">&larr;</button>
+                            <button type="button" id="motor_stop" onclick="send('http://127.0.0.1:8000/motor_stop')">&squ;</button>
+                            <button type="button" id="motor_right" onclick="send('http://127.0.0.1:8000/motor_right')">&rarr;</button>
                         </center>
                     </div>
                     <div>
-                        <button type="button" id="motor_bk" onclick="send('http://192.168.2.17:8000/motor_bk')">&darr;</button>
+                        <button type="button" id="motor_bk" onclick="send('http://127.0.0.1:8000/motor_bk')">&darr;</button>
                     </div>
                 </center>
             </div>
@@ -169,29 +169,72 @@ class ServoHandler:
             s.angle = 0
         self.set_servo_angle(s, s.angle)
 
+class Motor:
+    def __init__(self, in1, in2, en):
+        self.in1 = in1 #24
+        self.in2 = in2 #23
+        self.en = en#25
+        #temp1=1
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(self.in1,GPIO.OUT)
+        GPIO.setup(self.in2,GPIO.OUT)
+        GPIO.setup(self.en,GPIO.OUT)
+        GPIO.output(self.in1,GPIO.LOW)
+        GPIO.output(self.in2,GPIO.LOW)
+        self.p=GPIO.PWM(self.en,1000)
+        self.p.start(75)
+    
+    def forward(self):
+        GPIO.output(self.in1,GPIO.HIGH)
+        GPIO.output(self.in2,GPIO.LOW)
+
+    def backward(self):
+        GPIO.output(self.in1,GPIO.LOW)
+        GPIO.output(self.in2,GPIO.HIGH)
+    
+    def stop(self):
+        GPIO.output(self.in1,GPIO.LOW)
+        GPIO.output(self.in2,GPIO.LOW)
+
+        
+    
+
+class MotorHandler:
+    __instance = None
+    @staticmethod 
+    def getInstance():
+        """ Static access method. """
+        if MotorHandler.__instance == None:
+            MotorHandler()
+        return MotorHandler.__instance
+    
+    def __init__(self):
+        """ Virtually private constructor. """
+        if MotorHandler.__instance != None:
+            raise Exception("This class is a singleton!")
+        else:
+            MotorHandler.__instance = self
+        self.mr, self.ml = Motor(24, 23, 25), Motor(6, 5, 26)
+        
     def motor_fw(self):
-        self.incrementServoAngle(-30)
-        #left_motor_fw
-        #right_motor_fw
+        self.mr.forward()
+        self.ml.forward()
 
     def motor_bk(self):
-        self.incrementServoAngle(-30)
-        #left_motor_bk
-        #right_motor_bk
+        self.mr.backward()
+        self.ml.backward()
 
     def motor_left(self):
-        self.incrementServoAngle(-30)
-        #left_motor_bk
-        #right_motor_fw
+        self.mr.backward()
+        self.ml.forward()  
 
     def motor_right(self):
-        self.incrementServoAngle(-30)
-        #left_motor_fw
-        #right_motor_bk
+        self.mr.forward()
+        self.ml.backward()
 
     def motor_stop(self):
-        self.incrementServoAngle(-30)
-
+        self.mr.stop()
+        self.ml.stop()
 
 
 
@@ -215,6 +258,7 @@ class StreamingOutput(object):
 class StreamingHandler(server.BaseHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         self.s = ServoHandler.getInstance()
+        self.m = MotorHandler.getInstance()
         #print("streaming handler initialized")
         super().__init__(*args, **kwargs)
     #s.incrementServoAngle(10)
@@ -236,19 +280,19 @@ class StreamingHandler(server.BaseHTTPRequestHandler):
             self.end_headers()
         elif self.path == '/motor_stop':
             self._send_webpage()
-            self.s.motor_stop()
+            self.m.motor_stop()
         elif self.path == '/motor_fw':
             self._send_webpage()
-            self.s.motor_fw()
+            self.m.motor_fw()
         elif self.path == '/motor_right':
             self._send_webpage()
-            self.s.motor_right()
+            self.m.motor_right()
         elif self.path == '/motor_left':
             self._send_webpage()
-            self.s.motor_left()
+            self.m.motor_left()
         elif self.path == '/motor_bk':
             self._send_webpage()
-            self.s.motor_bk()
+            self.m.motor_bk()
         elif self.path == '/up':
             self._send_webpage()
             self.s.up()
