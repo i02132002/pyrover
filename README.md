@@ -1,6 +1,6 @@
 # pyrover
 The Pyrover is a compact battery-powered rover operating on a raspberry pi that is controlled via a webpage.
-![alt text](https://github.com/i02132002/pyrover/blob/main/images/rover.jpg?raw=true)(relative/path/to/img.jpg?raw=true "Title")
+![alt text](https://github.com/i02132002/pyrover/blob/main/images/rover.jpg?raw=true)
 
 ## Demo
 ![alt text](https://github.com/i02132002/pyrover/blob/main/images/pyrover_demo_clip.mp4?raw=true)
