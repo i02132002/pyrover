@@ -1,9 +1,9 @@
 # pyrover
 The Pyrover is a compact battery-powered rover operating on a raspberry pi that is controlled via a webpage.
-![alt text](https://github.com/i02132002/pyrover/blob/main/rover.jpg?raw=true)
+![alt text](https://github.com/i02132002/pyrover/blob/main/images/rover.jpg?raw=true)(relative/path/to/img.jpg?raw=true "Title")
 
 ## Demo
-![alt text](https://github.com/i02132002/pyrover/blob/main/pyrover_demo_clip.mp4?raw=true)
+![alt text](https://github.com/i02132002/pyrover/blob/main/images/pyrover_demo_clip.mp4?raw=true)
 
 ## Hardware connections
 The raspberry pi pinouts to the stepper motor controller (HW-95 : L298N STEPPER MOTOR DRIVER MODULE) are as follows:
